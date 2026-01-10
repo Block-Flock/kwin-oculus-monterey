@@ -51,6 +51,7 @@ WindowItem::WindowItem(Window *window, Item *parent)
     connect(window, &Window::interactiveMoveResizeFinished, this, &WindowItem::updateVisibility);
     connect(window, &Window::outputChanged, this, &WindowItem::updateVisibility);
     connect(waylandServer(), &WaylandServer::lockStateChanged, this, &WindowItem::updateVisibility);
+    connect(window, &Window::vrChanged, this, &WindowItem::updateVisibility);
     connect(workspace(), &Workspace::currentActivityChanged, this, &WindowItem::updateVisibility);
     connect(workspace(), &Workspace::currentDesktopChanged, this, &WindowItem::updateVisibility);
     updateVisibility();
@@ -158,7 +159,7 @@ void WindowItem::deelevate()
 
 bool WindowItem::computeVisibility() const
 {
-    if (!m_window->readyForPainting()) {
+    if (!m_window->readyForPainting() || m_window->isVr()) {
         return false;
     }
     if (waylandServer()->isScreenLocked()) {
