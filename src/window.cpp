@@ -4730,6 +4730,19 @@ void Window::finishInteractiveOutputChange(LogicalOutput *oldOutput)
     setDesktops(desktops);
 }
 
+bool Window::isVr() const
+{
+    return m_vr;
+}
+
+void Window::setVr(bool set)
+{
+    if (m_vr != set) {
+        m_vr = set;
+        Q_EMIT vrChanged();
+    }
+}
+
 void Window::setActivationToken(const QString &token)
 {
     m_activationToken = token;
