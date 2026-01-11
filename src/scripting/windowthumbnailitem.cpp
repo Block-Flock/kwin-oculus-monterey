@@ -42,18 +42,25 @@ WindowThumbnailSource::WindowThumbnailSource(QQuickWindow *view, Window *handle)
     : m_view(view)
     , m_handle(handle)
 {
+
     connect(handle, &Window::frameGeometryChanged, this, [this]() {
         m_dirty = true;
-        Q_EMIT changed();
+        m_timer.start();
     });
     connect(handle, &Window::damaged, this, [this]() {
         m_dirty = true;
-        Q_EMIT changed();
+        m_timer.start();
     });
 
-    connect(kwinApp()->scene(), &WorkspaceScene::preFrameRender, this, &WindowThumbnailSource::update);
+    // we might have m_dirty flag set while Qt was performing its rendering
+    connect(view, &QQuickWindow::afterFrameEnd, this, &WindowThumbnailSource::update, Qt::QueuedConnection);
+
+    connect(&m_timer, &QTimer::timeout, this, &WindowThumbnailSource::update);
+    m_timer.setSingleShot(true);
+    m_timer.setInterval(0);
 
     m_handle->refOffscreenRendering();
+    m_timer.start();
 }
 
 WindowThumbnailSource::~WindowThumbnailSource()
@@ -115,9 +122,15 @@ void WindowThumbnailSource::update()
     }
     Q_ASSERT(m_view);
 
-    const QRectF geometry = m_handle->visibleGeometry();
-    const qreal devicePixelRatio = m_view->devicePixelRatio();
-    const QSize textureSize = geometry.toAlignedRect().size() * devicePixelRatio;
+    const RectF geometry = m_handle->visibleGeometry();
+    const qreal devicePixelRatio = m_handle->targetScale();
+    const QSize textureSize = (geometry.size() * devicePixelRatio).toSize();
+
+    if (textureSize.isEmpty()) {
+        return;
+    }
+
+    kwinApp()->scene()->openglContext()->makeCurrent();
 
     if (!m_offscreenTexture || m_offscreenTexture->size() != textureSize) {
         m_offscreenTexture = GLTexture::allocate(GL_RGBA8, textureSize);
@@ -344,7 +357,7 @@ void WindowThumbnailItem::setWId(const QUuid &wId)
     } else if (m_client) {
         m_client = nullptr;
         updateSource();
-        updateImplicitSize();
+        updateSizes();
         Q_EMIT clientChanged();
     }
 
@@ -363,28 +376,42 @@ void WindowThumbnailItem::setClient(Window *client)
     }
     if (m_client) {
         disconnect(m_client, &Window::frameGeometryChanged,
-                   this, &WindowThumbnailItem::updateImplicitSize);
+                   this, &WindowThumbnailItem::updateSizes);
+        disconnect(m_client, &Window::bufferGeometryChanged,
+                   this, &WindowThumbnailItem::updateSizes);
     }
     m_client = client;
     if (m_client) {
         connect(m_client, &Window::frameGeometryChanged,
-                this, &WindowThumbnailItem::updateImplicitSize);
+                this, &WindowThumbnailItem::updateSizes);
+        connect(m_client, &Window::bufferGeometryChanged,
+                this, &WindowThumbnailItem::updateSizes);
         setWId(m_client->internalId());
     } else {
         setWId(QUuid());
     }
     updateSource();
-    updateImplicitSize();
+    updateSizes();
     Q_EMIT clientChanged();
 }
 
-void WindowThumbnailItem::updateImplicitSize()
+void WindowThumbnailItem::updateSizes()
 {
     QSize frameSize;
+    QSizeF textureSize(0, 1);
+    QRectF windowArea(0, 0, 1, 1);
     if (m_client) {
-        frameSize = m_client->frameGeometry().toAlignedRect().size();
+        auto visible = m_client->visibleGeometry();
+        auto frame = m_client->frameGeometry();
+
+        frameSize = frame.toAlignedRect().size();
+        textureSize = visible.size();
+        windowArea = QRectF(frame.topLeft() - visible.topLeft(), frame.size());
     }
+
     setImplicitSize(frameSize.width(), frameSize.height());
+    setTextureSizeLogical(textureSize);
+    setTextureFrameRect(windowArea);
 }
 
 QRectF WindowThumbnailItem::paintedRect() const
@@ -409,6 +436,32 @@ QRectF WindowThumbnailItem::paintedRect() const
     paintedRect.moveTop(paintedRect.y() + (visibleGeometry.y() - frameGeometry.y()) * yScale);
 
     return paintedRect;
+}
+
+QSizeF WindowThumbnailItem::textureSizeLogical() const
+{
+    return m_textureSizeLogical;
+}
+
+void WindowThumbnailItem::setTextureSizeLogical(const QSizeF &newTextureSizeLogical)
+{
+    if (m_textureSizeLogical == newTextureSizeLogical)
+        return;
+    m_textureSizeLogical = newTextureSizeLogical;
+    Q_EMIT textureSizeLogicalChanged();
+}
+
+QRectF WindowThumbnailItem::textureFrameRect() const
+{
+    return m_textureFrameRect;
+}
+
+void WindowThumbnailItem::setTextureFrameRect(const QRectF &newTextureFrameRect)
+{
+    if (m_textureFrameRect == newTextureFrameRect)
+        return;
+    m_textureFrameRect = newTextureFrameRect;
+    Q_EMIT textureFrameRectChanged();
 }
 
 } // namespace KWin
