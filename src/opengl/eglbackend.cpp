@@ -129,14 +129,28 @@ void EglBackend::initWayland()
     if (!WaylandServer::self()) {
         return;
     }
-    DrmDevice *scanoutDevice = drmDevice();
-    Q_ASSERT(scanoutDevice);
+    updateDmabufFormats();
+    connect(this, &RenderBackend::dmabufFeedbackFormatFilterChanged, this, &EglBackend::updateDmabufFormats);
+    waylandServer()->setRenderBackend(this);
+}
 
-    auto filterFormats = [this](std::optional<uint32_t> bpc, bool withExternalOnlyYUV) {
+void EglBackend::updateDmabufFormats()
+{
+    DrmDevice *scanoutDevice = drmDevice();
+    if (!scanoutDevice) {
+        return;
+    }
+
+    const auto &allFormats = m_renderDevice->eglDisplay()->allSupportedDrmFormats();
+    const auto &nonExternalOnly = m_renderDevice->eglDisplay()->nonExternalOnlySupportedDrmFormats();
+    const auto formatFilter = dmabufFeedbackFormatFilter();
+
+    auto filterFormats = [this, &allFormats, &nonExternalOnly, &formatFilter](std::optional<uint32_t> bpc, bool withExternalOnlyYUV) {
         FormatModifierMap set;
-        const auto &allFormats = m_renderDevice->eglDisplay()->allSupportedDrmFormats();
-        const auto &nonExternalOnly = m_renderDevice->eglDisplay()->nonExternalOnlySupportedDrmFormats();
         for (auto it = allFormats.constBegin(); it != allFormats.constEnd(); it++) {
+            if (!formatFilter.isEmpty() && !formatFilter.contains(it.key())) {
+                continue;
+            }
             const auto info = FormatInfo::get(it.key());
             if (bpc && (!info || bpc != info->bitsPerColor)) {
                 continue;
@@ -172,8 +186,11 @@ void EglBackend::initWayland()
         return set;
     };
 
-    auto includeShaderConversions = [](FormatModifierMap &&formats) -> FormatModifierMap {
+    auto includeShaderConversions = [&formatFilter](FormatModifierMap &&formats) -> FormatModifierMap {
         for (auto format : FormatInfo::s_drmConversions.keys()) {
+            if (!formatFilter.isEmpty() && !formatFilter.contains(format)) {
+                continue;
+            }
             auto &modifiers = formats[format];
             if (modifiers.empty()) {
                 modifiers = {DRM_FORMAT_MOD_LINEAR};
@@ -182,6 +199,7 @@ void EglBackend::initWayland()
         return formats;
     };
 
+    m_tranches.clear();
     m_tranches.append({
         .device = m_renderDevice->eglDisplay()->renderDevNode().value_or(scanoutDevice->deviceId()),
         .flags = LinuxDmaBufV1Feedback::TrancheFlag::Sampling,
@@ -201,8 +219,6 @@ void EglBackend::initWayland()
     LinuxDmaBufV1ClientBufferIntegration *dmabuf = waylandServer()->linuxDmabuf();
     dmabuf->setRenderBackend(this);
     dmabuf->setSupportedFormatsWithModifiers(m_tranches);
-
-    waylandServer()->setRenderBackend(this);
 }
 
 bool EglBackend::initClientExtensions()

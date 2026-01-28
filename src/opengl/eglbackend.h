@@ -58,6 +58,7 @@ protected:
     void setRenderDevice(RenderDevice *device);
     bool initClientExtensions();
     void initWayland();
+    void updateDmabufFormats();
     bool hasClientExtension(const QByteArray &ext) const;
     bool isOpenGLES() const;
     bool createContext();
