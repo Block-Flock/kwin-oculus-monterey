@@ -463,6 +463,20 @@ public:
     void requestDpmsState(DpmsState state);
     DpmsState dpmsState() const;
 
+    bool vrMode() const
+    {
+        return m_vrMode;
+    }
+    void setVrMode(bool mode)
+    {
+        if (m_vrMode == mode) {
+            return;
+        }
+
+        m_vrMode = mode;
+        Q_EMIT vrModeChanged();
+    }
+
 public Q_SLOTS:
     void performWindowOperation(KWin::Window *window, Options::WindowOperation op);
     // Keybindings
@@ -589,6 +603,7 @@ Q_SIGNALS:
     void stackingOrderChanged();
     void aboutToRearrange();
     void dpmsStateChanged(std::chrono::milliseconds animationTime);
+    void vrModeChanged();
 
 private:
     void init();
@@ -773,6 +788,8 @@ private:
     std::shared_ptr<FileDescriptor> m_sleepInhibitor;
 
     PopupBoundsResolver m_popupBoundsResolver;
+
+    bool m_vrMode = false;
 
 private:
     friend Workspace *workspace();
