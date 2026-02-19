@@ -300,6 +300,7 @@ public:
     bool isCloseable() const override;
     void closeWindow() override;
     bool wantsInput() const override;
+    static std::function<RectF(Window *parent)> defaultPopupBoundsResolver();
 
 protected:
     bool acceptsFocus() const override;

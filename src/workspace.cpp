@@ -63,6 +63,7 @@
 #include "wayland/externalbrightness_v1.h"
 #include "wayland/surface.h"
 #include "wayland_server.h"
+#include "xdgshellwindow.h"
 #if KWIN_BUILD_X11
 #include "atoms.h"
 #include "core/brightnessdevice.h"
@@ -191,6 +192,8 @@ static const double s_autoBrightnessDeadzone = environmentVariableIntValue("KWIN
 
 void Workspace::init()
 {
+    m_popupBoundsResolver = XdgPopupWindow::defaultPopupBoundsResolver();
+
     KSharedConfigPtr config = kwinApp()->config();
     m_screenEdges->setConfig(config);
     m_screenEdges->init();
@@ -2537,6 +2540,16 @@ RectF Workspace::clientArea(clientAreaOption opt, const Window *window, const Lo
 RectF Workspace::clientArea(clientAreaOption opt, const Window *window, const QPointF &pos) const
 {
     return clientArea(opt, window, outputAt(pos));
+}
+
+void Workspace::setPopupBoundsResolver(PopupBoundsResolver resolver)
+{
+    m_popupBoundsResolver = resolver ? std::move(resolver) : XdgPopupWindow::defaultPopupBoundsResolver();
+}
+
+const Workspace::PopupBoundsResolver &Workspace::popupBoundsResolver() const
+{
+    return m_popupBoundsResolver;
 }
 
 Rect Workspace::geometry() const

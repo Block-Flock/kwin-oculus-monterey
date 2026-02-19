@@ -155,6 +155,10 @@ public:
     RectF clientArea(clientAreaOption, const Window *window, const LogicalOutput *output) const;
     RectF clientArea(clientAreaOption, const Window *window, const QPointF &pos) const;
 
+    using PopupBoundsResolver = std::function<RectF(Window *parent)>;
+    void setPopupBoundsResolver(PopupBoundsResolver resolver);
+    const PopupBoundsResolver &popupBoundsResolver() const;
+
     /**
      * Returns the geometry of this Workspace, i.e. the bounding rectangle of all outputs.
      */
@@ -767,6 +771,8 @@ private:
     QList<QString> m_recentlyRemovedDpmsOffOutputs;
     QTimer m_dpmsTimer;
     std::shared_ptr<FileDescriptor> m_sleepInhibitor;
+
+    PopupBoundsResolver m_popupBoundsResolver;
 
 private:
     friend Workspace *workspace();
