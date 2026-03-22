@@ -188,6 +188,7 @@ SLOTWRAPPER(slotWindowOnAllDesktops)
 SLOTWRAPPER(slotWindowFullScreen)
 SLOTWRAPPER(slotWindowNoBorder)
 SLOTWRAPPER(slotWindowExcludeFromCapture)
+SLOTWRAPPER(slotWindowAllowPointerLock)
 
 SLOTWRAPPER(slotWindowToNextDesktop)
 SLOTWRAPPER(slotWindowToPreviousDesktop)

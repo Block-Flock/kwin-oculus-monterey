@@ -600,6 +600,7 @@ public Q_SLOTS:
     void slotWindowFullScreen();
     void slotWindowNoBorder();
     void slotWindowExcludeFromCapture();
+    void slotWindowAllowPointerLock();
 
     void slotWindowToNextDesktop();
     void slotWindowToPreviousDesktop();

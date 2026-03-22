@@ -424,6 +424,7 @@ public:
         FullScreenOp,
         NoBorderOp,
         ExcludeFromCaptureOp,
+        AllowPointerLockOp,
         NoOp,
         SetupWindowShortcutOp,
         ApplicationRulesOp,
