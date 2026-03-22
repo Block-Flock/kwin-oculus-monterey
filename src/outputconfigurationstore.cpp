@@ -48,7 +48,7 @@ std::optional<std::pair<OutputConfiguration, OutputConfigurationStore::ConfigTyp
 {
     QList<BackendOutput *> relevantOutputs;
     std::copy_if(outputs.begin(), outputs.end(), std::back_inserter(relevantOutputs), [](BackendOutput *output) {
-        return !output->isNonDesktop() && !output->isPlaceholder();
+        return !output->isNonDesktop() && !output->isPlaceholder() && !output->isLeased() && !output->isLeasePending();
     });
     if (relevantOutputs.isEmpty()) {
         return std::nullopt;
@@ -299,7 +299,7 @@ void OutputConfigurationStore::storeConfig(const QList<BackendOutput *> &allOutp
 {
     QList<BackendOutput *> relevantOutputs;
     std::copy_if(allOutputs.begin(), allOutputs.end(), std::back_inserter(relevantOutputs), [](BackendOutput *output) {
-        return !output->isNonDesktop() && !output->isPlaceholder();
+        return !output->isNonDesktop() && !output->isPlaceholder() && !output->isLeased() && !output->isLeasePending();
     });
     if (relevantOutputs.isEmpty()) {
         return;
@@ -368,6 +368,7 @@ void OutputConfigurationStore::storeConfig(const QList<BackendOutput *> &allOutp
             .automaticBrightness = output->automaticBrightness(),
             .autoBrightnessCurve = output->autoBrightnessCurve(),
             .abmLevel = output->abmLevel(),
+            .leasable = output->isLeasable(),
         };
         *outputIt = SetupState{
             .outputIndex = *outputIndex,
@@ -467,6 +468,7 @@ OutputConfiguration OutputConfigurationStore::setupToConfig(Setup *setup, const 
             .automaticBrightness = state.automaticBrightness,
             .autoBrightnessCurve = state.autoBrightnessCurve,
             .abmLevel = state.abmLevel,
+            .leasable = state.leasable,
         };
     }
     return ret;
@@ -696,6 +698,7 @@ OutputConfiguration OutputConfigurationStore::generateConfig(const QList<Backend
             // TODO generate a more fitting brightness map per screen?
             .autoBrightnessCurve = existingData.autoBrightnessCurve,
             .abmLevel = existingData.abmLevel.value_or(0),
+            .leasable = existingData.leasable.value_or(false),
         };
         if (setupState) {
             priority = std::max(setupState->priority + 1, priority);
@@ -865,7 +868,7 @@ double OutputConfigurationStore::chooseScale(BackendOutput *output, const QSize 
 void OutputConfigurationStore::registerOutputs(const QList<BackendOutput *> &outputs)
 {
     for (BackendOutput *output : outputs) {
-        if (output->isNonDesktop() || output->isPlaceholder()) {
+        if (output->isNonDesktop() || output->isPlaceholder() || output->isLeased() || output->isLeasePending()) {
             continue;
         }
         auto index = findOutputIndex(output, outputs);
@@ -1188,6 +1191,9 @@ void OutputConfigurationStore::load()
                 state.abmLevel = level;
             }
         }
+        if (const auto it = data.find("leasable"); it != data.end() && it->isBool()) {
+            state.leasable = it->toBool();
+        }
         outputDatas.push_back(state);
     }
 
@@ -1495,6 +1501,9 @@ void OutputConfigurationStore::save()
         }
         if (output.abmLevel.has_value()) {
             o["abmLevel"] = int(*output.abmLevel);
+        }
+        if (output.leasable) {
+            o["leasable"] = *output.leasable;
         }
         outputsData.append(o);
     }

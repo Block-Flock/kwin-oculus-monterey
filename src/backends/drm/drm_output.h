@@ -57,6 +57,9 @@ public:
     void setAutoBrightnessAvailable(bool isAvailable) override;
 
     DrmLease *lease() const;
+    bool isLeased() const override;
+    bool isLeasePending() const override;
+    void setLeasePending(bool pending);
     bool addLeaseObjects(QList<uint32_t> &objectList);
     void leased(DrmLease *lease);
     void leaseEnded();
@@ -94,6 +97,7 @@ private:
     const std::shared_ptr<DrmConnector> m_connector;
 
     DrmLease *m_lease = nullptr;
+    bool m_leasePending = false;
 
     QVector3D m_sRgbChannelFactors = {1, 1, 1};
     bool m_needsShadowBuffer = false;

@@ -88,6 +88,7 @@ public:
 
 Q_SIGNALS:
     void outputsQueried();
+    void outputLeaseStateChanged();
     /**
      * This signal is emitted when an output has been connected. The @a output is not ready
      * for compositing yet.

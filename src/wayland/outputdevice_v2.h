@@ -38,6 +38,7 @@ public:
 
     void offer(BackendOutput *output);
     void withdraw(BackendOutput *output);
+    bool hasDevice(BackendOutput *output) const;
 
 private:
     std::unique_ptr<OutputDeviceRegistryV2Private> d;

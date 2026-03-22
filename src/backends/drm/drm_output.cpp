@@ -96,17 +96,34 @@ bool DrmOutput::addLeaseObjects(QList<uint32_t> &objectList)
 void DrmOutput::leased(DrmLease *lease)
 {
     m_lease = lease;
+    m_leasePending = false;
 }
 
 void DrmOutput::leaseEnded()
 {
     qCDebug(KWIN_DRM) << "ended lease for connector" << m_pipeline->connector()->id();
     m_lease = nullptr;
+    m_leasePending = false;
 }
 
 DrmLease *DrmOutput::lease() const
 {
     return m_lease;
+}
+
+bool DrmOutput::isLeased() const
+{
+    return m_lease != nullptr;
+}
+
+bool DrmOutput::isLeasePending() const
+{
+    return m_leasePending;
+}
+
+void DrmOutput::setLeasePending(bool pending)
+{
+    m_leasePending = pending;
 }
 
 bool DrmOutput::shouldDisableNonPrimaryPlanes() const
@@ -257,6 +274,7 @@ BackendOutput::Capabilities DrmOutput::computeCapabilities() const
     if (m_connector->abmLevel.isValid()) {
         capabilities |= Capability::AbmLevel;
     }
+    capabilities |= Capability::Leasing;
     return capabilities;
 }
 
@@ -595,6 +613,7 @@ bool DrmOutput::queueChanges(const std::shared_ptr<OutputChangeSet> &props)
     m_nextState->lastBrightnessAdjustmentReason = props->brightnessReason.value_or(m_state.lastBrightnessAdjustmentReason);
     m_nextState->autoBrightnessCurve = props->autoBrightnessCurve.value_or(m_state.autoBrightnessCurve);
     m_nextState->abmLevel = props->abmLevel.value_or(m_state.abmLevel);
+    m_nextState->leasable = props->leasable.value_or(m_state.leasable);
 
     const bool bt2020 = m_nextState->wideColorGamut && (capabilities() & Capability::WideColorGamut);
     const bool hdr = m_nextState->highDynamicRange && (capabilities() & Capability::HighDynamicRange);
@@ -733,7 +752,7 @@ void DrmOutput::setChannelFactors(const QVector3D &rgb)
 
 void DrmOutput::tryKmsColorOffloading(State &next)
 {
-    if (!m_pipeline->activePending() || m_pipeline->layers().empty() || m_lease) {
+    if (!m_pipeline->activePending() || m_pipeline->layers().empty() || m_lease || m_leasePending) {
         return;
     }
 

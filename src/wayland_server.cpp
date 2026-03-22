@@ -302,7 +302,7 @@ void WaylandServer::registerXdgGenericWindow(Window *window)
 
 void WaylandServer::handleOutputAdded(BackendOutput *output)
 {
-    if (!output->isPlaceholder() && !output->isNonDesktop()) {
+    if (!output->isPlaceholder() && !output->isNonDesktop() && !output->isLeased() && !output->isLeasePending()) {
         m_outputDeviceRegistry->offer(output);
     }
 }
@@ -310,6 +310,20 @@ void WaylandServer::handleOutputAdded(BackendOutput *output)
 void WaylandServer::handleOutputRemoved(BackendOutput *output)
 {
     m_outputDeviceRegistry->withdraw(output);
+}
+
+void WaylandServer::syncOutputDevices()
+{
+    const auto allOutputs = kwinApp()->outputBackend()->outputs();
+    for (BackendOutput *output : allOutputs) {
+        const bool shouldHaveDevice = !output->isPlaceholder() && !output->isNonDesktop() && !output->isLeased() && !output->isLeasePending();
+        const bool hasDevice = m_outputDeviceRegistry->hasDevice(output);
+        if (shouldHaveDevice && !hasDevice) {
+            m_outputDeviceRegistry->offer(output);
+        } else if (!shouldHaveDevice && hasDevice) {
+            m_outputDeviceRegistry->withdraw(output);
+        }
+    }
 }
 
 void WaylandServer::handleOutputEnabled(LogicalOutput *output)
@@ -613,6 +627,8 @@ void WaylandServer::initWorkspace()
     }
     connect(kwinApp()->outputBackend(), &OutputBackend::outputAdded, this, &WaylandServer::handleOutputAdded);
     connect(kwinApp()->outputBackend(), &OutputBackend::outputRemoved, this, &WaylandServer::handleOutputRemoved);
+    connect(kwinApp()->outputBackend(), &OutputBackend::outputsQueried, this, &WaylandServer::syncOutputDevices);
+    connect(kwinApp()->outputBackend(), &OutputBackend::outputLeaseStateChanged, this, &WaylandServer::syncOutputDevices);
 
     const auto outputs = workspace()->outputs();
     for (LogicalOutput *output : outputs) {

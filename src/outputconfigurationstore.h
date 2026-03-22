@@ -93,6 +93,7 @@ private:
         std::optional<bool> automaticBrightness;
         std::optional<AutoBrightnessCurve> autoBrightnessCurve;
         std::optional<uint32_t> abmLevel;
+        std::optional<bool> leasable;
     };
     struct SetupState
     {

@@ -80,6 +80,7 @@ public:
         AutomaticBrightness = 1 << 16,
         HdrIccProfile = 1 << 17,
         AbmLevel = 1 << 18,
+        Leasing = 1 << 19,
     };
     Q_DECLARE_FLAGS(Capabilities, Capability)
 
@@ -230,6 +231,9 @@ public:
 
     bool isPlaceholder() const;
     bool isNonDesktop() const;
+    bool isLeasable() const;
+    virtual bool isLeased() const;
+    virtual bool isLeasePending() const;
     OutputTransform panelOrientation() const;
     bool wideColorGamut() const;
     bool highDynamicRange() const;
@@ -409,6 +413,7 @@ Q_SIGNALS:
     void hdrIccProfilePathChanged();
     void hdrColorProfileSourceChanged();
     void abmLevelChanged();
+    void leasableChanged();
 
 protected:
     struct Information
@@ -496,6 +501,7 @@ protected:
         AutoBrightnessCurve autoBrightnessCurve;
         BrightnessReason lastBrightnessAdjustmentReason = BrightnessReason::ManualAdjustment;
         uint32_t abmLevel = 0;
+        bool leasable = false;
     };
 
     void setInformation(const Information &information);

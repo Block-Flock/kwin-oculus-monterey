@@ -45,6 +45,7 @@ public:
     void offerConnector(DrmLeaseConnectorV1Interface *connector);
     DrmLeaseConnectorV1Interface *connectorForOutput(DrmAbstractOutput *output) const;
     void offerAvailableConnectors();
+    void watchLeasable(DrmAbstractOutput *output);
 
     bool hasDrmMaster() const;
     DrmGpu *gpu() const;
@@ -98,6 +99,9 @@ public:
 
     QList<DrmLeaseConnectorV1Interface *> connectors() const;
     void invalidate();
+
+private:
+    bool tryGrantLease(DrmLeaseV1Interface *lease);
 
 protected:
     void wp_drm_lease_request_v1_request_connector(Resource *resource, struct ::wl_resource *connector) override;

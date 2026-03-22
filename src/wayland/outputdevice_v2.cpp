@@ -87,6 +87,11 @@ void OutputDeviceRegistryV2::withdraw(BackendOutput *output)
     d->outputDevices.erase(output);
 }
 
+bool OutputDeviceRegistryV2::hasDevice(BackendOutput *output) const
+{
+    return d->outputDevices.contains(output);
+}
+
 static QtWaylandServer::kde_output_device_v2::transform kwinTransformToOutputDeviceTransform(OutputTransform transform)
 {
     return static_cast<QtWaylandServer::kde_output_device_v2::transform>(transform.kind());
