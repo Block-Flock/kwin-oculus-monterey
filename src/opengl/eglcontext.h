@@ -114,7 +114,7 @@ private:
     void glResolveFunctions(const std::function<resolveFuncPtr(const char *)> &resolveFunction);
     void initDebugOutput();
 
-    static EglContext *s_currentContext;
+    static thread_local EglContext *s_currentContext;
 
     const QByteArrayView m_versionString;
     const Version m_version;

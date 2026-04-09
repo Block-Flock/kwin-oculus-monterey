@@ -28,7 +28,7 @@
 namespace KWin
 {
 
-EglContext *EglContext::s_currentContext = nullptr;
+thread_local EglContext *EglContext::s_currentContext = nullptr;
 
 std::shared_ptr<EglContext> EglContext::create(EglDisplay *display, EGLConfig config, ::EGLContext sharedContext)
 {
