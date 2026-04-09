@@ -307,6 +307,11 @@ void ScreenCastStream::onStreamAddBuffer(pw_buffer *pwBuffer)
 void ScreenCastStream::onStreamRemoveBuffer(pw_buffer *pwBuffer)
 {
     if (ScreenCastBuffer *buffer = static_cast<ScreenCastBuffer *>(pwBuffer->user_data)) {
+        if (dynamic_cast<DmaBufScreenCastBuffer *>(buffer)) {
+            if (auto backend = qobject_cast<EglBackend *>(Compositor::self()->backend())) {
+                backend->openglContext()->makeCurrent();
+            }
+        }
         delete buffer;
         pwBuffer->user_data = nullptr;
         m_allBuffers.removeOne(buffer);
