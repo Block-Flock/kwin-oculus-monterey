@@ -17,6 +17,13 @@ Qt Quick 3D XR and a working OpenXR runtime. Monterey does not have a Monado
 driver yet, so the plugin has not rendered on the headset and is not described
 as functional yet.
 
+KWin is the VR compositor, not the base desktop. The Monterey session runs
+labwc normally and starts this KWin build as a nested Wayland compositor only
+when VR is requested. KWin listens for VR applications on `oculus-vr-0` while
+its windowed backend connects to labwc's socket. The VR plugin remains inside
+KWin because it depends on KWin-private scene, window, and input APIs; it is not
+a plugin that labwc can load.
+
 ## Dependency versions
 
 The plugin requires Qt 6.10.2 or newer; Qt 6.11 is preferred. Alpine edge has
@@ -40,13 +47,14 @@ OpenXR frame timing, and measured 72/90 Hz output on the headset.
 
 ## Repository scope
 
-KWin owns desktop composition and VR window interaction. Device-specific code
-belongs elsewhere:
+labwc owns the normal desktop. Nested KWin owns VR window composition and
+interaction. Device-specific code belongs elsewhere:
 
 - Monterey HMD, pose, and Touch action devices: Monado driver.
 - SyncBoss/Pulsar pairing and reconnect: privileged controller bridge.
 - Qualcomm Android graphics loading: device compatibility service.
-- Session startup, refresh selector, and USB recovery: pmaports device package.
+- labwc session startup, nested-KWin launcher, refresh selector, and USB
+  recovery: pmaports packages.
 
 Keeping these boundaries separate makes upstream review possible and prevents
 controller pairing data or proprietary firmware from entering this repository.
