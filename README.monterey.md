@@ -13,9 +13,10 @@ reviewable changes needed for the Quest 1 postmarketOS port.
 
 The imported plugin provides floating Wayland windows, head-gaze input,
 controller bindings, virtual screens, and a Qt Quick 3D XR scene. It requires
-Qt Quick 3D XR and a working OpenXR runtime. Monterey does not have a Monado
-driver yet, so the plugin has not rendered on the headset and is not described
-as functional yet.
+Qt Quick 3D XR and a working OpenXR runtime. The Monterey Monado fork now finds
+the live headset and creates a two-view HMD from its SyncBoss IMU stream, but
+its compositor cannot initialize Vulkan on the stock kernel. The plugin has
+therefore not rendered on the headset and is not described as functional yet.
 
 KWin is the VR compositor, not the base desktop. The Monterey session runs
 labwc normally and starts this KWin build as a nested Wayland compositor only
@@ -36,10 +37,13 @@ history.
 ## Monterey hardware boundary
 
 The Quest 1 v50 downstream kernel exposes KGSL and the Android framebuffer,
-not DRM/KMS. The stock firmware contains the matching Qualcomm Adreno EGL,
-GLES, Vulkan, gralloc, hardware-composer, and Oculus-composer libraries.
-Those proprietary files are never committed here. The device port loads them
-from the owner's untouched slot A through an isolated compatibility layer.
+not DRM/KMS; `CONFIG_DRM` is disabled and no `/dev/dri` render node exists.
+The stock firmware contains the matching Qualcomm Adreno EGL, GLES, Vulkan,
+gralloc, hardware-composer, and Oculus-composer libraries, but those modules
+target Android/Bionic and cannot be loaded directly by Alpine/Musl. Those
+proprietary files are never committed here. A working port needs an isolated
+Android graphics compatibility process or a DRM/MSM kernel path before Monado
+and Qt Quick 3D XR can present the VR scene.
 
 A framebuffer/software-rendered desktop is useful as an early diagnostic, but
 it cannot prove VR performance. The VR milestone requires stereo presentation,
