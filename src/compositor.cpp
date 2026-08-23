@@ -261,15 +261,22 @@ void Compositor::start()
     if (m_selectedCompositor == NoCompositing) {
         m_selectedCompositor = m_backend->compositingType();
 
-        switch (m_selectedCompositor) {
-        case NoCompositing:
-            break;
-        case OpenGLCompositing:
-            QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
-            break;
-        case QPainterCompositing:
-            QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
-            break;
+        // Qt Quick 3D XR requires the Vulkan RHI. KWin's windowed fallback can
+        // use QPainter for its own scene while the VR plugin renders its
+        // offscreen Quick scene through Vulkan.
+        if (qEnvironmentVariableIntValue("KWIN_VR_QSG_VULKAN") == 1) {
+            QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
+        } else {
+            switch (m_selectedCompositor) {
+            case NoCompositing:
+                break;
+            case OpenGLCompositing:
+                QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+                break;
+            case QPainterCompositing:
+                QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
+                break;
+            }
         }
     }
 
