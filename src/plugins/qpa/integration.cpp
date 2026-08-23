@@ -36,6 +36,9 @@
 
 #include <QtGui/private/qgenericunixeventdispatcher_p.h>
 #include <QtGui/private/qgenericunixfontdatabase_p.h>
+#if QT_CONFIG(vulkan)
+#include <QtGui/private/qbasicvulkanplatforminstance_p.h>
+#endif
 #if __has_include(<QtGui/private/qgenericunixtheme_p.h>)
 #include <QtGui/private/qgenericunixtheme_p.h>
 #else
@@ -52,6 +55,33 @@ namespace KWin
 
 namespace QPA
 {
+
+#if QT_CONFIG(vulkan)
+class VulkanInstance final : public QBasicPlatformVulkanInstance
+{
+public:
+    explicit VulkanInstance(QVulkanInstance *instance)
+        : m_instance(instance)
+    {
+        loadVulkanLibrary(QStringLiteral("vulkan"), 1);
+    }
+
+    void createOrAdoptInstance() override
+    {
+        // The KWin QPA renders internal windows offscreen. Qt Quick 3D XR
+        // therefore needs a Vulkan instance, but no window-system surface.
+        initInstance(m_instance, {});
+    }
+
+    bool supportsPresent(VkPhysicalDevice, uint32_t, QWindow *) override
+    {
+        return false;
+    }
+
+private:
+    QVulkanInstance *m_instance;
+};
+#endif
 
 Integration::Integration()
     : QObject()
@@ -172,6 +202,13 @@ QPlatformOpenGLContext *Integration::createPlatformOpenGLContext(QOpenGLContext 
     }
     return nullptr;
 }
+
+#if QT_CONFIG(vulkan)
+QPlatformVulkanInstance *Integration::createPlatformVulkanInstance(QVulkanInstance *instance) const
+{
+    return new VulkanInstance(instance);
+}
+#endif
 
 QPlatformAccessibility *Integration::accessibility() const
 {

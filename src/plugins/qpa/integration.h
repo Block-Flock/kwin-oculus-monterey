@@ -43,6 +43,9 @@ public:
     QStringList themeNames() const override;
     QPlatformTheme *createPlatformTheme(const QString &name) const override;
     QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const override;
+#if QT_CONFIG(vulkan)
+    QPlatformVulkanInstance *createPlatformVulkanInstance(QVulkanInstance *instance) const override;
+#endif
     QPlatformAccessibility *accessibility() const override;
     QPlatformNativeInterface *nativeInterface() const override;
     QPlatformInputContext *inputContext() const override;
